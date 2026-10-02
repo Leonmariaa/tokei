@@ -168,32 +168,33 @@ pub fn add_input(input: &str, languages: &mut Languages) -> bool {
     use std::fs::File;
     use std::io::Read;
 
-    let map = match File::open(input) {
-        Ok(mut file) => {
-            let contents = {
-                let mut contents = String::new();
-                file.read_to_string(&mut contents)
-                    .expect("Couldn't read file");
-                contents
-            };
+    let file_result = File::open(input);
+    let map: Option<LanguageMap>;
 
-            convert_input(&contents)
+    if file_result.is_ok(){
+        let mut file = file_result.unwrap();
+        let mut contents = String::new();
+        let read_result = file.read_to_string(&mut contents);
+        if read_result.is_err(){
+            panic!("Couldn't read file");
         }
-        Err(_) => {
-            if input == "stdin" {
-                let mut stdin = ::std::io::stdin();
-                let mut buffer = String::new();
 
-                let _ = stdin.read_to_string(&mut buffer);
-                convert_input(&buffer)
-            } else {
-                convert_input(input)
-            }
+        map = convert_input(&contents);
+    } else {
+        if input == "stdin" {
+            let mut stdin = ::std::io::stdin();
+            let mut buffer = String::new();
+
+            let _ = stdin.read_to_string(&mut buffer);
+            map = convert_input(&buffer)
+        } else {
+            map = convert_input(input)
         }
-    };
+    }
 
-    if let Some(map) = map {
-        *languages += map;
+    if map.is_some() {
+        let unwrapped_map = map.unwrap();
+        *languages += unwrapped_map;
         true
     } else {
         false
@@ -201,7 +202,12 @@ pub fn add_input(input: &str, languages: &mut Languages) -> bool {
 }
 
 fn convert_input(contents: &str) -> Option<LanguageMap> {
-    self::Format::parse(contents)
+    let input_data = contents;
+    let parse_result = self::Format::parse(input_data);
+    match parse_result {
+    Some(result) => Some(result),
+    None => None
+    }
 }
 
 #[cfg(test)]

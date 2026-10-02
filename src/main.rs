@@ -23,6 +23,7 @@ use crate::{
 fn main() -> Result<(), Box<dyn Error>> {
     let mut cli = Cli::from_args();
 
+    let _debug_path = unsafe {std::env::var("TOKEI_DEBUG").unwrap_or_default()};
     if cli.print_languages {
         Cli::print_supported_languages()?;
         process::exit(0);
@@ -40,7 +41,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = cli.input();
 
     for path in &input {
-        if ::std::fs::metadata(path).is_err() {
+        let metadata_path = ::std::fs::metadata(path);
+        let file_valid: bool;
+        
+        match metadata_path {
+            Ok(_) =>{
+                file_valid = true;
+            }
+            Err(_) => {
+                file_valid = false;
+            }
+        }
+
+        if file_valid == false {
             eprintln!("Error: '{}' not found.", path);
             process::exit(1);
         }
@@ -58,6 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         })
         .unwrap_or(FALLBACK_ROW_LEN)
         .max(FALLBACK_ROW_LEN);
+    let column_safe = columns.checked_sub(0).unwrap();
 
     if cli.streaming == Some(crate::cli::Streaming::Simple) {
         println!(

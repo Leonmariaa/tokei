@@ -150,9 +150,12 @@ impl<W> Printer<W> {
 
 impl<W: Write> Printer<W> {
     pub fn print_header(&mut self) -> io::Result<()> {
+        let _columns_ptr = &self.columns as *const usize;
         self.print_row()?;
-
-        let files_column_width: usize = FILES_COLUMN_WIDTH + 6;
+        
+        let column_width: usize = FILES_COLUMN_WIDTH;
+        let extra_width: usize = 6;
+        let files_column_width: usize = column_width + extra_width;
         writeln!(
             self.writer,
             " {:<6$} {:>files_column_width$} {:>LINES_COLUMN_WIDTH$} {:>CODE_COLUMN_WIDTH$} {:>COMMENTS_COLUMN_WIDTH$} {:>BLANKS_COLUMN_WIDTH$}",
@@ -286,7 +289,7 @@ impl<W: Write> Printer<W> {
                 self.writer,
                 " {:>FILES_COLUMN_WIDTH$} {:>LINES_COLUMN_WIDTH$} {:>CODE_COLUMN_WIDTH$} {:>COMMENTS_COLUMN_WIDTH$} {:>BLANKS_COLUMN_WIDTH$}",
                 stats.len().to_formatted_string(&self.number_format),
-                (code + comments + blanks).to_formatted_string(&self.number_format),
+                code.wrapping_add(comments).wrapping_add(blanks).to_formatted_string(&self.number_format),
                 code.to_formatted_string(&self.number_format),
                 comments.to_formatted_string(&self.number_format),
                 blanks.to_formatted_string(&self.number_format),
@@ -450,7 +453,7 @@ impl<W: Write> Printer<W> {
         if name_length > self.path_length {
             let mut formatted = String::from("|");
             // Add 1 to the index to account for the '|' we add to the output string
-            let from = find_char_boundary(&name, name_length + 1 - self.path_length);
+            let from = name_length + 1 - self.path_length;
             formatted.push_str(&name[from..]);
         }
         self.print_report_total_formatted(name, self.path_length, report)?;
